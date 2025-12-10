@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Tránsitos Astrológicos - Dumon</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Iconos de Lucide React (versión simple)
+        const RefreshCw = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+        );
+        
+        const Calendar = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        );
+        
+        const MapPin = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+        );
+        
+        
+
+
+const AstroTransitDashboard = () => {
+  const [transits, setTransits] = useState(null);
+  const [aspects, setAspects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [selectedAspect, setSelectedAspect] = useState(null);
+  const [hoveredAspect, setHoveredAspect] = useState(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [dumonInterpretations, setDumonInterpretations] = useState({});
+  const [loadingInterpretations, setLoadingInterpretations] = useState(true);
+
+  // URL del archivo JSON de interpretaciones
+  const INTERPRETATIONS_URL = 'https://raw.githubusercontent.com/martin59992/transitos-dum/refs/heads/main/dumon_interpretaciones_completo.json';
+
+  
+  // Interpretaciones de Dumon embebidas (70 interpretaciones prioritarias)
+  const DUMON_EMBEDDED = {
+  "LUNA_CUADRATURA_PLUTON": "Este tránsito permite que uno ahonde en sus propias emociones; el autoaná- lisis ahora puede ser muy efectivo, si se es honesto. El nativo o la nativa, a tra- 113 vés de los sentimientos o de sus emociones, puede tratar de obligar a otra per- sona a que realice algo que no desea. Puede surgir un conflicto familiar a con- secuencia de querer dominar una situación desde un punto de vista emocional. El dominio psicológico que ejerce una mujer es un peligro. Es posible que ha- ya infidelidad o fricción en el matrimonio, si otros elementos de la carta así lo indican. Impulsos repentinos que afectan sus sentimientos son producto de su estado emocional. El tránsito de Plutón en cuadratura a la Luna natal es simi- lar en su significado al tránsito de la Luna en cuadratura con Plutón natal; sin embargo, debido a la gran lentitud con que se mueve Plutón, sus efectos son mucho más duraderos e indica un prolongado período de transformación emo- cional y de tipo doméstico. Este tránsito ocurre una",
+  "SOL_CONJUNCION_TRANSITOS DE NEPTUNO NEPTUNO": "Ver Sol t conjunción Neptuno n.",
+  "SATURNO_CONJUNCION_LUNA": "Ver Luna t conjunción Saturno n.",
+  "VENUS_CONJUNCION_SATURNO": "Decididamente es un tránsito desagradable. Desde el punto de vista afecti- vo puede sentir soledad y tristeza, aferrándose a los seres queridos o a quienes les tiene confianza. Es justamente por el lado de los afectos donde sentirá res- tricción o limitación, pero esto no quiere decir que no exista amor; puede in- dicar dificultades en una relación amorosa o no sentir afecto sino por el con- trario, más bien indiferencia. Es posible que la persona que Ud. quiere atraer no consiga verla o que la compañía que le tocó sea insulsa o estúpida. Tam- 167 bién es factible que la persona que ahora conozca puede estar ligada a Ud. por mucho tiempo y aunque no sca atractiva, puede serle muy fiel y seria, En una fiesta no será precisamente el centro de atracción y hasta es posible que come- ta algunas torpezas; tal vez se relacione con personas de cdad, aunque no lo comprendan. Mal contacto para asuntos sociales, musicales o artísticos, así como con respecto a los sentimientos y a la posibilidad de sentir placer y ale- ería, salvo que existan otros aspectos fuertes en contrario. Este tránsito puede indicar la ruptura o separación temporaria con un ser querido, o puede coinci- dir con circunstancias críticas en las relaciones sentimentales. Pero si Saturno goza de buenos aspectos en el natal, una vieja relación afectiva, comercial o de sociedad puede ser reanudada durante este tránsito. El tránsito de Saturno en conjunción a Venus natal es similar en su significado al tránsito de Venus en",
+  "SATURNO_CONJUNCION_MERCURIO": "Ver Mercurio t conjunción Saturno n.",
+  "SATURNO_CONJUNCION_MARTE": "Ver Marte t conjunción Satumo n.",
+  "LUNA_CONJUNCION_JUPITER": "Bajo este tránsito, la actitud emocional es más serena y tranquila, con más bondad y comprensión hacia la familia. Siempre hay un sentimiento de bie- nestar con este aspecto. El nativo se siente contento, feliz y sin temores. Po- see comprensión y no se excita fácilmente, ya que está por encima de las vul- gares irritaciones. Existe mayor posibilidad que la habitual para ser generoso y aplicar principios espirituales en la vida diaria. Son momentos favorables para el trato con mujeres en general y de manera particular, con aquellas co- nectadas con asuntos educativos, culturales o simplemente por negocios. Es un buen contacto para hacer relaciones públicas. Hay tendencia a comer en de- masía, o se tiene interés en el arte culinario. El tránsito de Júpiter en conjun- ción a la Luna natal tiene un significado similar al tránsito de la Luna en con- junción a Júpiter natal; sin embargo, es más duradero, así que sus efectos son importantes. Los tránsitos de Júpiter a la Luna —como a cualqui",
+  "SOL_TRIGONO_URANO": "Ver Sol t trígono Urano n.",
+  "MERCURIO_CONJUNCION_SATURNO": "Desde un punto de vista positivo es un buen contacto para planificar, es- cribir u organizar metódicamente cualquier trabajo en detalle; para analizar la situación profesional o laboral con objetividad y ver si se actúa con eficien- cia. La capacidad crítica es muy aguda, así que se pueden ver enseguida los defectos que tiene uno mismo, como también los argumentos de otras perso- nas. Pero hay que tener en cuenta que esto debe servir para corregir esos de- fectos y no para debilitar la confianza de uno mismo o la de los demás. Des- de un punto de vista negativo, puede ser una influencia depresiva y, física- mente, predispone a los problemas nerviosos, neuralgias y reumatismo. Re- crudecen las dificultades que podrían ya existir, con hermanos o parientes. Es probable que se sienta desanimado, infeliz, desentonado mentalmente, “pesa- do” y algo pesimista. Este contacto puede hacer que la comunicación sea di- ficultosa, se tengan malas noticias o no se reciba la carta o el llamado telefó-",
+  "LUNA_CONJUNCION_NEPTUNO": "Momentos de imaginación intuitiva; recuerdos inconscientes o de sueños premonitorios. Este tránsito incrementa la sensibilidad para captar la atmósfe- ra que rodea al nativo. Existe un deseo de ayudar a los necesitados. Puede te- ner alguna experiencia psíquica. Hay que tratar de evitar la distracción cuan- do se trabaja. Los errores se cometen con facilidad en esta época, de la misma manera que aparecen trastornos emocionales, con este tránsito. Contacto con familiares en hospitales, asilo o prisión. La comunicación con otras personas ahora también puede resultar más difícil y las ideas pueden no ser tan claras, de manera que hay que cuidarse de ser irrealista. Asimismo, es posible expe- rimentar cierta excitación emocional que fascina o hipnotiza; por ejemplo, el ritmo musical o el baile despiertan una profunda atracción de las emociones. El tránsito de Neptuno en conjunción a la Luna natal, sin embargo, puede du- rar más de un año si consideramos el movimiento retrógrado y estaciona",
+  "TRANSITOS DE SATURNO SATURNO_CONJUNCION_SOL": "Ver sol t conjunción Saturno n.",
+  "LUNA_CONJUNCION_MERCURIO": "Este es un tránsito muy rápido, como todos los de la Luna, que se siente durante un par de horas aproximadamente, así que no tiene demasiada trascen- dencia. Es favorable para las comunicaciones con miembros de la familia, par- ticularmente con los hermanos; también para la actividad mental, porque des- pierta la curiosidad o la necesidad de estar informado. Este tránsito indica a veces el momento de realizar un viaje corto y conocido. Marca una buena oportunidad para hablar de algún asunto que le interesa mucho, hasta de aque- llos que por su índole pueden provocar mucha emoción o discusión. Es post- ble recibir la visita de vecinos en su casa o tener un contacto amistoso con compañeros de trabajo. Á menudo aparecen ideas prácticas para mejorar la efi- ciencia de las tareas cotidianas. Actividad relacionada con las tareas del hogar, por ejemplo, hacer las compras, la comida, la limpieza, etc. La comunicación con el sexo femenino es más fácil. El tránsito de Mercurio en conjunción a la",
+  "LUNA_OPOSICION_VENUS": "Puede conducir a excesos en cuestiones físicas, emocionales o materiales. Conflicto en las relaciones familiares conyugales y sentimentales; sin embar- go, con los seres queridos, el contacto con el “benéfico menor” puede servir para descargar tensiones emocionales a las que les sigue un período de tran- quilidad y armonía, si la bondad y sensibilidad se dejan manifestar. En todo trato social, sentimental o comercial con el sexo femenino, hace falta espíritu de colaboración o de cooperación especial por parte del nativo, si desea que haya armonía. Tendencia a la extravagancia en los gastos y a la excesiva bús- queda de placer en el comer o el beber, lo que puede producir dificultades más tarde, El tránsito de Venus en oposición a la Luna natal es similar en su signi- ficado al tránsito de la Luna en oposición a Venus natal; sin embargo, es de mayor duración, dependiendo del movimiento de Venus el que puede estar di- recto, retrógrado o estacionario. En este caso, indica un período entr",
+  "VENUS_CONJUNCION_MARTE": "Todo tránsito por conjunción favorece para hacer nuevos comienzos. Pue- de ser una actividad dinámica de naturaleza artística o el deseo más cornún de concretar una relación romántica; estos son dos aspectos que caracterizan a es- te contacto. Excita la naturaleza emocional con mucha fuerza y uno tiende a ser impulstvo en la manifestación de los afectos; despierta una fuerte atracción y deseo por el sexo opuesto. Puede dar repentinos “ataques de amor” o a ve- ces peleas entre amantes o personas que se quieren, las que finalizan con alter- cados y arrebatos emocionales, seguidos por relteradas y seductoras demostra- ciones de “mimos”. Sin embargo, como es Venus el que hace conjunción a Marte y no Marte en tránsito en conjunción a Venus, el efecto es más atempe- rado, suaviza a Marte y a Ud. lo hace más complaciente o dispuesto a satisfa- cer las necesidades de su pareja o de la otra persona, cualquiera sea su relación con ella. Es un aspecto asociado con la propia relación sexual. Los asuntos so- ciales también demandan atención y esfuerzos; hay que vestirse en forma más atractiva y despertar sentimientos de atracción en los demás. Es un buer. trán- sito también para la actividad artística en general o la expresión física de ésta, como puede ser el baile, el canto, la danza. El tránsito de Marte en conjunción a Venus natal tiene el mismo significado que el tránsito de Vemus en conjun- ción a Marte natal, no obstante, es de mayor duración, iadicando un perfodo breve algo agresi",
+  "MERCURIO_CONJUNCION_MERCURIO": "Los tránsitos de Mercurio no son muy importantes, a menos que este pla- neta se encuentre retrógrado o estacionario en algún lugar importante de la carta; en este caso, sus efectos son muy marcados y cuando se une a la influen- cia de los tránsitos de otros planetas, intensifica su acción. El contacto de Mer- curio en tránsito con Mercurio natal estimula la mente y la hace muy percep- tiva. Es favorable para todo tipo de actividad intelectual; para el comienzo de un proyecto intelectivo; para estudiar, escribir, dar conferencia o enseñar. La capacidad de razonar mejora y es un buen momento para hacer un análisis ra- cional. Asimismo, es un buen momento para la comunicación con otras perso- nas, porque permite transmitir con objetividad. Actividad intelectual entre her- manos, con amigos o con compañeros de trabajo. Se recibe más corresponden- cia o llamados telefónicos que lo habitual. Viajes a corta distancia, a menos que por rutina lo haga a lugares distantes, como es el caso de much",
+  "LUNA_CONJUNCION_SOL": "Ver Sol t conjunción Luna n. 91",
+  "LUNA_OPOSICION_PLUTON": "Este tránsito es negativo en el orden familiar, porque tiende a manifestar enfrentamientos, como consecuencia de un fuerte deseo de querer dominar a la familia desde un punto de vista emocional. Las emociones son profundas aunque no siempre armoniosas. Las fantasías subconscientes pueden volverse activas. El nativo puede verse impelido por la fuerza de las circunstancias, a tener contacto con el público o a encontrarse con otras personas, más de lo acostumbrado. Son momentos de querer controlar las emociones de los de- más, de sentir celos y posesividad. Si Ud. puede encarar al conflicto sin apa- sionamiento, logrará sacar mucha ventaja de este tránsito. Tampoco es bueno confiar en la suerte, con este contacto. El tránsito de Plutón en oposición a la 127 Luna natal tiene el mismo significado que el tránsito de la Luna en oposición a Plutón natal, pero sus efectos son mucho más duraderos, debido al lento mo- vimiento de Plutón, el que manifestará una situación de regeneración de las vie",
+  "LUNA_OPOSICION_MARTE": "Ver Luna t oposición Marte n. MARTE t OPOSICIÓN MERCURIO n Ver Mercurio t oposición Marte n.",
+  "SOL_TRIGONO_SATURNO": "Ver Sol t trígono Saturno n.",
+  "SOL_CONJUNCION_TRANSITOS DE URANO URANO": "Ver Sol t conjunción Urano n.",
+  "SOL_CONJUNCION_TRANSITOS DE SATURNO SATURNO": "Ver sol t conjunción Saturno n.",
+  "LUNA_CUADRATURA_NEPTUNO": "Este tránsito predispone a la distracción, a la falta de claridad mental o a te- ner pequeñas trampas o engaños. Crea falsas expectativas o ilusiones, de ahí que no sean momentos convenientes para tomar decisiones o emprender algo que necesita una elaboración más profunda. La influencia del subconsciente es negativa ahora y los viejos hábitos, sentimientos y prejuicios pueden conducir a una conclusión equivocada o de decepción. Cierta predisposición a engañar o a ser engañado puede manifestarse en asuntos de dinero y si el nativo o la na- tiva tiene predisposición al alcohol o a las drogas, este contacto indica un mo- mento de dificultad en este sentido. Puede haber alguna experiencia negativa relacionada con prácticas religiosas o espirituales. El hecho de abandonar algu- na responsabilidad en el hogar puede acarrear dificultades. Con frecuencia existen problemas emocionales que involucran a las mujeres. Desde el punto de vista de la salud es posible que produzca algún problema digest",
+  "JUPITER_CONJUNCION_MERCURIO": "Ver Mercurio t conjunción Júpiter n.",
+  "LUNA_CUADRATURA_VENUS": "Existe predisposición a ser inconstante o versátil en los efectos; a creer que no se es querido. Indica momentos de infelicidad matrimonial, debido a cual- quiera de las actitudes mencionadas, por parte del cónyuge. El nativo o la na- tiva puede ponerse demasiado sentimental porque tiende a recordar lazos afec- tivos del pasado. Tendencia a la hipersensibilidad desde un punto de vista emocional; se siente afectado por un desaire o menosprecio cualquiera. A ve- ces se actúa con una actitud de sobreprotección, hasta casi en forma posesiva, respecto de las personas queridas. Tendencia a no querer trabajar o hacer es- fuerzos, rehuyendo los hechos desagradables de la vida. Con este tránsito hay que evitar los excesos en las comidas o en la bebida. El tránsito de Venus en cuadratura con la Luna natal es similar en su significado al tránsito de la Lu- na en cuadratura con Venus natal; sin embargo, tiene más duración y por lo tanto, es de mayor efecto sobre el individuo. Conduce a un exceso m",
+  "VENUS_CONJUNCION_MERCURIO": "Ver el tránsito de Mercurio conjunción Venus n.",
+  "JUPITER_CONJUNCION_VENUS": "Ver Venus t conjunción Júpiter n. JUPITER t CONFUNCION MARTE n Ver Marte t conjunción Júpiter n.",
+  "MARTE_CONJUNCION_JUPITER": "Este es un aspecto que incrementa la confianza en sí mismo; da entusias- mo, ambición, expansión de los sentimientos, generosidad. Es una época fa- vorable para buscar un empleo, recibir instrucción en la ocupación, pretender un ascenso o emprender un negocio. Usted se puede sentir eufórico, vital, op- timista, inquieto, le agrada buscar aventuras, tener libertad y es posible que ahora necesite más que nunca divertirse, distraerse, gastar dinero, salir de compras y hasta jugar. Sin embargo, hay que tener cierto cuidado porque, por ejemplo, se tiende a comprar cosas que no son necesarias, a pagar más de lo que corresponde o a tener pérdidas por exageración. En general, es un tránsi- to afortunado por la acción (Marte) que tiene éxito (Júpiter) y por eso es favo- rable para comenzar cualquier empresa o nuevo proyecto, pero tomando las precauciones debidas, porque si esta conjunción está afligida o si existen pro- gresiones aflictivas, es mejor no comenzar o emprender cosas nuevas. Este es un aspecto que impulsa a hacer cosas, permite la expansión de los sentimien- tos, da generosidad, aunque también indica ser descuidado, tener una conduc- ta impulsiva, exagerada, con inclinación a tomar riesgos financieros. Dema- siada confianza en sí mismo puede ser también perjudicial y los accidentes pueden inclusive ocurrir con este tránsito. También es un contacto favorable para la actividad deportiva y muy bueno para cualquiera que realice ejercicios físicos, porque tonifica la acción mu",
+  "SOL_OPOSICION_SATURNO": "Estos días pueden ser muy irritantes o molestos, porque las circunstancias pueden exigir el máximo de disciplina y responsabilidad para tratar problemas tediosos o rutinarios. Puede haber una actitud egoísta y rígida, pero también será muy consciente de las limitaciones que otras personas o las propias cir- cunstancias imponen sobre uno. Tendencia a sentir la soledad o incapacidad para comunicarse con otros. Puede haber un conflicto entre la necesidad de au- toexpresión y la de relacionarse o entre las necesidades internas y sus obliga- $7 ciones. Si gana el deber, el nativo puede sentir inhibición, impaciencia y falta de realización; pero si se ignoran las obligaciones y hace sólo lo que le agra- da, estará en conflicto con los demás y esto impedirá que goce con toda satis- facción de sus actividades. Así que es necesario encontrar un equilibrio, Las energías físicas tienden a bajar, un enfriamiento puede acechar, sí se cansa de- masiado; también es posible que ahora necesite algún ar",
+  "MERCURIO_CONJUNCION_MARTE": "Este contacto confiere una gran fuerza mental y energía intelectual. La conversación tiende a ser aguda, frontal, pragmática. Predisposición a la dis- cusión intelectual, al debate y a ser más agresivo cuando expresa sus ideas O defiende sus opiniones. Si esta conjunción recibe a la vez aspectos de tensión de otros planetas puede ser un momento de serio problema a causa de la irri- tabilidad, el sarcasmo, nerviosismo y decisiones impulsivas que puede origi- nar. Propensión a identificar el ego con cada cosa que uno piensa, dice o cree. Esto crea conflicto y es cuestión de reflexionar antes de decidirse a luchar, si realmente vale la pena defender su posición. ¿Cuáles son las ideas que real mente estoy defendiendo? es lo que puede uno preguntar y, una vez averigua- do, es posible que la manifestación de esta energía no sea tan negativa. Uno mismo o algún otro pariente cercano puede sufrir accidente, fiebre o una ope- ración quirúrgica. Hay que evitar la impaciencia, los apuros, la impul",
+  "LUNA_CUADRATURA_LUNA": "Un tránsito que produce tensión emocional, mal humor e irritación, así que durante estos momentos Ud. está predispuesto a chocar con los demás, parti- cularmente con algún familiar. Las dificultadcs pueden aparecer por caprichos o através de mujeres y sus problemas emocionales. No es un buen período pa- ra trabajar con el público, ni tampoco para hacer alguna presentación ante él, por las tensiones que se pueden originar. Es una época desfavorable para rea- lizar transacciones comerciales en general o para la compra de bienes raíces, productos alimenticios u objetos para el hogar. Además, tanto el comer como el beber deben hacerse con prudencia, por la predisposición a tener trastornos gástricos. Este tránsito da origen a una carta astrológica importante llamada Cuarto Lunar, cuya vigencia es de aproximadamente siete días.",
+  "SOL_SEXTIL_URANO": "Ver Sol t sextil Urano n.",
+  "LUNA_CONJUNCION_PLUTON": "Este tránsito se caracteriza por un fuerte deseo de cambiar o mejorar las condiciones familiares o del hogar. Además, se agrega un intenso estado emo- cional, porque la tendencia es llevar a la superficie algo arraigado en la men- te subconsciente. Puede aparecer un deseo de querer dominar a otros o la cir- cunstancia de que familiares traten de dominarlo. Las relaciones con el sexo femenino pueden ser positivas o negativas, de acuerdo a como se encuentre Plutón en la carta natal. Es posible que aparezcan celos o un sentimiento de posesividad. No es un buen contacto para hacer relaciones públicas o para te- ner trato con el público, porque existe la posibilidad de tener enfrentamientos, deseos de reprimir o de coartar la acción de los demás. Es posible que el nati- vo participe de alguna concentración o reunión pública, manifestando discon- formidad o demostrando aprobación. El tránsito de Plutón en conjunción a la Luna natal tiene un significado similar al tránsito de la Luna en conju",
+  "SOL_TRIGONO_NEPTUNO": "Ver Sol t trígono Neptuno n.",
+  "MARTE_CONJUNCION_SATURNO": "Ver Marte t conjunción Satumo n.",
+  "LUNA_OPOSICION_SOL": "Ver Sol t oposición Luna n.",
+  "SOL_OPOSICION_NEPTUNO": "Con este tránsito es posible que Ud. tenga que ayudar a otras personas, pe- ro no permita que sus simpatías lo lleven a exageraciones, humillaciones o dramatismos. El engaño de sí mismo o las ilusiones de grandeza pueden ser los efectos negativos de este contacto. En general es una influencia poco con- fiable y en todos los casos, salvo aquel en el que la energía de Neptuno sea 89 específicamente muy utilizada, es mejor desconfiar de las personas o propo- siciones que aparezcan o reciba, porque la posibilidad de engaño o fraude puede ser el resultado. Hasta las propias ideas pueden no ser prácticas ni se- guras, sino por el contrario, bastante confusas. Durante estos pocos días en que dura el tránsito es mejor evitar enfrentamientos con gente agresiva; tam- poco son buenos para intervenir en competencias. También evite hacer el pa- pel de víctima o mártir que tiene bajo esta influencia y si no puede defender- se ahora, deje para otro momento el careo, hasta haber reflexionado mejor. Ha",
+  "VENUS_CONJUNCION_JUPITER": "Ver Venus t conjunción Júpiter n. JUPITER t CONFUNCION MARTE n Ver Marte t conjunción Júpiter n.",
+  "LUNA_CUADRATURA_JUPITER": "Ver Luna t cuadratura Júpiter n.",
+  "LUNA_CONJUNCION_URANO": "Los deseos y esperanzas pueden ser tan exaltados y fuertes que van más allá de la probabilidad, de manera que es mejor ser realista en los objetivos. Tendencia a actuar impulsiva e inesperadamente, con repentinos cambios de humor, así que hay que tener cuidado de reaccionar, sobre todo cuando alguien trata de frenarlo o detenerlo. La naturaleza tranquila de la Luna no armoniza bien con la del espasmódico Urano, por lo tanto, de este contacto pueden sur- gir momentos de tensión y nerviosismo. Es probable que se sienta impaciente por querer hacer algo diferente a la labor de la rutina, bajo este tránsito, pero después que pasa, uno se puede sentir arrepentido, dadas las consecuencias que puede traer u ocasionar. El tránsito de Urano en conjunción a la Luna na- tal es similar en su significado al tránsito de la Luna en conjunción a Urano natal; sin embargo, su movimiento es mucho más lento —algo más de un año-— y de este modo señala un período de cambio en los asuntos familiares así co- m",
+  "SOL_OPOSICION_URANO": "Tendencia a estar nervioso en estos días, con tensión o excitación. La per- turbación e inestabilidad se acentúa porque algunos asuntos importantes ines- peradamente parecen darse vuelta. A veces la conducta social es impredecible; se toman decisiones impulsivamente o se cometen actos imprudentes, todo lo cual perjudica la reputación y tiene consecuencias indeseables, Este tránsito a veces es muy intenso y desestabiliza. Respecto de las proposiciones que se re- ciban en esta época hay que ser más bien escéptico, aunque ellas puedan ser aparentemente muy interesantes; si uno mismo posee alguna nueva idea que sea de naturaleza radical para su propia actividad, hay que ser muy prudente en su ejecución, aunque lo mejor sería esperar a que pase el tránsito, porque el cambio puede no resultar ser tan práctico o atractivo como se pensaba. En 88 toda fuerte relación, una de las partes puede ser sumamente impaciente, sin ánimo de compartir ni disposición a tolerar, así que este sentimiento pued",
+  "LUNA_CUADRATURA_URANO": "Ver Luna t cuadratura Urano n.",
+  "MARTE_CONJUNCION_VENUS": "Ver el tránsito de Venus conjunción Marte n.",
+  "MERCURIO_CONJUNCION_JUPITER": "Esta es una influencia sumamente útil para la planificación a largo plazo y la expansión en el trabajo. El pensamiento puede ser ampliado con buen cri- terio, con confianza en sí mismo y una perspectiva optimista. Realmente, es- te aspecto amplía la comprensión de cualquier cosa en la que se tiene interés. Favorece todo tipo de actividad comercial o toda forma de hacer negocios. También es un período propicio para conseguir la admisión en un colegio o universidad. Es una época favorable para firmar contratos y emprender tanto un viaje corto como uno largo ya sea por razones de trabajo como de salud o, en algunos casos especiales, por razones educativas o religiosas. Pero si la conjunción está mal aspectada por otros planetas, la capacidad de Júpiter de ver más allá puede ser que pasc por alto los detalles y, llevado por su entustas- mo, induzca a cometer errores en cuanto a organización y eficiencia, y haga incurrir en superficialidad y chapucería. Otro defecto de esta posición es ser",
+  "LUNA_OPOSICION_LUNA": "Tensión emocional en el orden familiar. La dificultad estriba en que a Ud. le resulta difícil ver el punto de vista de los demás y sólo ve el suyo propio. Cuanto más emocional sea el temperamento de una persona, peor es el efecto de este tránsito. No es que los sentimientos sean verdaderamente negativos si- no que son muy fuertes. El hombre, por lo general, tiene dificultades con las mujeres y hasta puede haber una momentánea separación, producida por pe- leas o diferencias de opiniones, ya sea por cuestiones de índole doméstica o de carácter público. La mujer puede sentir insatisfacción con otra mujer o consi- go misma. Sin embargo, esta energía puede ser utilizada también en alguna ac- tividad más útil, sí aprende a desprenderse de una actitud subjetiva. Las per- turbaciones emocionales, a menudo producen indigestión durante este corto lapso. LUNA t OPOSICIÓN MERCURIO n Las emociones provocan dificultades en la comunicación. Una tendencia a conversar de más, a ser suelto de lengua. P",
+  "MERCURIO_CONJUNCION_VENUS": "Este tránsito se caracteriza por la comunicación, ya sea por razones socia- les, sentimentales o de trabajo. Este contacto hace que su forma de hablar o de escribir sea más agradable para los demás, Es un buen momento para recibir buenas noticias o carta de algún amigo, generalmente del sexo opuesto, con quien se tiene una fuerte relación. La actitud mental es alegre y amistosa. Es- te es un tránsito de tipo mental en combinación con el sentimiento emocional, así que la mejor expresión de este contacto es de carácter artístico, por eso el nativo tiende a experimentar de alguna manera, la apreciación de la belleza. Es un excelente tránsito para hacer propaganda y relaciones públicas. Un día 129 para tener visitas o compañía, o el deseo de llamar y visitar a otras personas para conversar. El libro que se lee o la película que se ve es muy probable que trate de una historia de amor que lo hará sentirse sentimental o emocional. El tránsito de Venus en conjunción a Mercurio natal tiene el m",
+  "MARTE_CONJUNCION_MERCURIO": "Ver el tránsito de Mercurio conjunción Marte n.",
+  "LUNA_OPOSICION_URANO": "Este breve período se caracteriza por los cambios de humor repentinos, la inestabilidad emocional y hasta por los errores de juicio, En las relaciones fa- miliares pueden aparecer trastornos sorpresivamente, o pueden surgir sorpre- sas inesperadas que no son agradables. Es probable algún encuentro inespera- do o buscar a alguien que, por sus características, sea diferente de las perso- nas con las que comúnmente se reúne. Amigos que interrumpen la vida hoga- reña. Desde el punto de vista de la salud, puede haber mala digestión por es- tados emocionales de alta tensión. Pueden ocurrir desperfectos o mal funcio- namiento de aparatos eléctricos en la casa y tener gastos innecesarios o impul- sivos en este día. Psicológicamente hablando, este aspecto tiende a producir reacciones muy negativas frente a la posibilidad de restricción o pérdida de la libertad. El tránsito de Uranc en oposición a la Luna natal es similar en cuan- to a su significado al tránsito de la Luna en oposición a Urano n",
+  "LUNA_CUADRATURA_SOL": "Ver el tránsito del Sol cuadratura Luna n.",
+  "LUNA_CUADRATURA_MARTE": "Es un tránsito muy desfavorable porque tiende a dar inestabilidad emocio- nal, impulsividad, irritabilidad, peleas en la familia, problemas con mujeres, etc. Si el nativo es una persona normalmente tímida, este tránsito puede ser algo peligroso; puede reaccionar mal o estar a la defensiva de alguien que se eruza en su camino, porque cree que lo atacan, cuando en realidad es la sus- ceptibilidad e inseguridad las que causan su conflicto. En cambio, si el nati- vo es una persona que tiene confianza en sí mismo, este contacto la predis- pone a ser impaciente, apresurada y agresiva. Los trastornos emocionales y los enojos pueden producir indigestión o trastornos en el estómago. Los ac- cidentes con herramientas, máquinas y elementos cortantes son una posibili- dad, al igual que las quemaduras en el hogar. Afortunadamente es un tránsi- to que dura poco tiempo, en cambio, el caso contrario —o sea el tránsito de Marte en cuadratura a la Luna natal— aunque similar en sus efectos al tránsi- to",
+  "SOL_CUADRATURA_NEPTUNO": "Ver Sol t cuadratura Neptuno n.",
+  "VENUS_CONJUNCION_VENUS": "Este contacto hace que durante dos o tres días se sienta atraído por perso- 165 nas de carácter benévolo, corteses, complacientes y agradables, quizás algo débiles de carácter pero verdaderamente consideradas y afectivas hacia Ud. Existe predisposición a ser más colaborador y simpático que antes, Es un trán- sito favorable para hacer nuevas relaciones, aunque lógicamente se necesitan otros tránsitos o direcciones más fuertes para que éstas scan realmente dura- deras. Hay necesidad de encontrarse con amigos; es un buen momento para di- vertirse y sentir alegría. Pueden aparecer situaciones románticas, ya que des- picrta atracción y simpatía. Contactos con personas jóvenes, más bien del se- xo femenino.",
+  "TRANSITOS DE JUPTTER JUPITER_CONJUNCION_SOL": "Ver Sol t conjunción Júpiter n.",
+  "LUNA_CONJUNCION_VENUS": "Este tránsito se caracteriza por un deseo de afecto y una tendencia a ser más sociable. La persona se siente alegre, serena y feliz, de ahí que sea un buen momento para asistir a una reunión social, por ejemplo. Es un tránsito favorable para realizar alguna actividad donde se exprese una habilidad artís- tica o musical; para decorar o embellecer el hogar; para festejar en su casa. Buen momento en cuanto a relaciones públicas o todo trato con mujeres. El contacto despierta una actitud bondadosa hacia la mujer o la familia, como también una disposición afectuosa hacia las necesidades emocionales y senti- mientos de los demás. El acto de comprar cosas relacionadas con la alimenta- ción, vestimenta, artefactos domésticos o que tengan que ver con la decora- ción de interiores es favorecido por este contacto. Si la conjunción está afligi- da por otros planetas, sean estos natales o en tránsito, puede haber tendencia a la sensualidad y gratificación a través del comer o beber en demasía, a go",
+  "SOL_OPOSICION_PLUTON": "Con este tránsito es probable encontrar personas que traten de dominar o de coartar la acción de uno; puede aparecer una lucha por el poder o un con- flicto por abuso de poder o autoridad. A la inversa, puede surgir la tentación 90 de querer “manejar” a otros mediante una resistencia pasiva a la que Ud. de- bería resistirse si es para beneficio propio, pero si es para beneficio de todos sí puede tener mucho éxito, dirigiendo con respeto y dignidad. La actitud im- pulsiva y testaruda tiene que ser evitada, lo mismo que mantener una discipli- na cruel o de excesiva severidad. Los enfrentamientos hay que encararlos di- recta y francamente, a fin de poner la dificultad al descubierto. Es mejor ser precavido con este tránsito y tratar de evitar situaciones donde se puede estar expuesto a los ataques agresivos o de violencia. No son días favorables para realizar cambios por su propia cuenta, porque encontrará mucha oposición, pero si lo hace con la ayuda de los demás será una poderosa influe",
+  "LUNA_CONJUNCION_MARTE": "Aunque los tránsitos de la Luna, por sí mismos, no tienen mucha importan- cia, de todos modos hay que prestarles atención cuando se trata de fuertes con- tactos con planetas maléficos. Uno de estos casos es con Marte. Aquí el peli- gro está en la reacción emocional que puede ser de irritación, enojo, así que es mejor evitar las discusiones, críticas o peleas con la gente, porque es difícil conseguir el equilibrio que atempere algún disgusto. Trastornos emocionales a causa de mujeres, de modo que no es un momento apto para relacionarse con 93 ellas. Puede ser también que los disgustos provengan de algún vendedor u otra persona agresiva. Existe el peligro de reaccionar imprevista o impulsivamen- te en algún asunto, sin haber reflexionado lo suficiente y que, por lo tanto, ha- ya que arrepentirse después. Los trastornos emocionales pueden producir in- digestiones durante este tránsito y si al mismo tiempo hay otros planetas que ” están aspectando inarmónicamente a la conjunción, puede ocu",
+  "LUNA_CONJUNCION_LUNA": "Este contacto es el ciclo llamado Revolución Lunar, que se produce todos los meses y que anuncia importantes cambios o nuevos comienzos para el mes en consideración. La carta levantada para la Revolución Lunar es calculada para el preciso momento en que se produce la conjunción (al segundo de ar- co) y se utiliza como herramienta de predicción según las influencias planeta- rias de esta carta. Los efectos de la Revolución Lunar cubren todo el mes y, con esta carta, es posible inferir cuáles son los sentimientos que predominarán durante ese lapso. Un mayor contacto con el sexo femenino es probable para el día de la conjunción. La persona puede volverse muy sensible en ese mo- mento; las emociones puede sentirlas con más fuerza. Es posible que la acti- vidad familiar se vea incrementada de alguna manera.",
+  "LUNA_CONJUNCION_SATURNO": "Este tránsito inclina a un estado emocional pesimista o depresivo, debido a preocupaciones familiares o recuerdos desagradables. Puede indicar respon- sabilidades domésticas o problemas en el hogar, generalmente porque siente que de aiguna manera la vida familiar no es llevada a cabo como correspon- de. Puede existir alguna dificultad financiera pasajera o tener alguna pérdida o gasto extra. Ocurre también que el problema personal surja como conse- cuencia de no descargar sus emociones, coartando tal posibilidad o que éstas scan tan desagradables que no quiera ocuparse de ellas. Puede expresar frial- dad o falta de simpatía hacia alguna persona de la familia, como consecuen- cia de una actitud emocional negativa. Es un período desfavorable para el tra- to con mujeres o con el público en general; tampoco es bueno para tomar de- cislones que afecten la vida sentimental. El tránsito de Saturno en conjunción a la Luna natal tiene el mismo significado que el tránsito de la Luna en con- junc",
+  "LUNA_OPOSICION_SATURNO": "Este tránsito, aunque es muy breve, tiende a producir baja vitalidad, depre- sión emocional y soledad. Predispone a ver el lado negro de las cosas, a sen- tir con más fuerza la desilusión o el fracaso, a veces sin ninguna razón. Por eso es mejor no hacer esfuerzos, no gastar energías y dejar para otra oportunidad cualquier decisión, porque la mente no actúa convenientemente. Es probable que haya una actitud fría en la relación familiar estimulada por recuerdos do- lorosos. No es un momento apropiado para el trato con mujeres, sobre todo de edad; dificultades con los padres. Este aspecto obliga a ser eficiente aunque sin apuros o a dedicar cierto tiempo a personas ancianas, pobres o desafortu- nadas. No es un buen momento para realizar negocios, especialmente aquellos relacionados con bienes raíces, con la construcción o la alimentación. Tampo- co las relaciones públicas y los actos politicos son favorecidos. El tránsito de Saturno en oposición a la Luna natal es similar en su significa",
+  "LUNA_OPOSICION_ASC Y CONJUNCION DESC": "Ver Luna t conjunción DESC y oposición ASC n. LUNA t OPOSICIÓN MC y CONJUNCION IC n Ver Luna t conjunción 1C y oposición MC n. LUNA t OPOSICION DESC y CONJUNCION ASC n Ver Luna | conjunción ASC y oposición DESC n. LUNA t OPOSICION IC y CONJUNCION MC n Ver Luna t conjunción MC y oposición IC n. 128",
+  "SOL_SEXTIL_SATURNO": "Ver Sol t sextil Saturno n.",
+  "SOL_CUADRATURA_SATURNO": "Ver Sol t cuadratura Saturno n.",
+  "SATURNO_CONJUNCION_VENUS": "Ver Venus t conjunción Satumo n.",
+  "LUNA_CUADRATURA_SATURNO": "Durante este tránsito, pueden aparecer dificultades en la relación con los padres o con personas mayores de ambos sexos, Son momentos de depresión emocional, tristeza o de sentirse solo, pero dando la sensación de ser más de lo que realmente es; o sea, que la emocionalidad impide ver con objetividad. Sin embargo, puede ser excelente para reflexionar y meditar, una vez que se vence la tendencia al desaliento y a la depresión. Puede ser un aspecto favo- rable también para trabajar, sí se realiza con orden y disciplina. Las dificul- tades aparecen en la relación emocional con otras personas, ya sea por su es- tado negativo o porque siente indiferencia o insensibilidad por parte de los demás. Desavenencias, dificultades y separaciones ocurren a menudo, sobre todo con el sexo femenino. Negocios que se demoran y problemas en los asuntos de todos los días, obligan a tener que afrontar la realidad práctica y concreta. El tránsito de Saturno en cuadratura con la Luna natal es similar en su sign",
+  "SOL_CUADRATURA_URANO": "Ver Sol t cuadratura Urano n.",
+  "JUPITER_CONJUNCION_LUNA": "Ver Luna t conjunción Jápiter n.",
+  "LUNA_OPOSICION_NEPTUNO": "Ver Luna t oposición Neptuno n. NEPTUNO t OPOSICIÓN MERCURIO n Ver Mercurio t oposición Neptuno n.",
+  "JUPITER_CONJUNCION_MARTE": "Este es un aspecto que incrementa la confianza en sí mismo; da entusias- mo, ambición, expansión de los sentimientos, generosidad. Es una época fa- vorable para buscar un empleo, recibir instrucción en la ocupación, pretender un ascenso o emprender un negocio. Usted se puede sentir eufórico, vital, op- timista, inquieto, le agrada buscar aventuras, tener libertad y es posible que ahora necesite más que nunca divertirse, distraerse, gastar dinero, salir de compras y hasta jugar. Sin embargo, hay que tener cierto cuidado porque, por ejemplo, se tiende a comprar cosas que no son necesarias, a pagar más de lo que corresponde o a tener pérdidas por exageración. En general, es un tránsi- to afortunado por la acción (Marte) que tiene éxito (Júpiter) y por eso es favo- rable para comenzar cualquier empresa o nuevo proyecto, pero tomando las precauciones debidas, porque si esta conjunción está afligida o si existen pro- gresiones aflictivas, es mejor no comenzar o emprender cosas nuevas. Este es un aspecto que impulsa a hacer cosas, permite la expansión de los sentimien- tos, da generosidad, aunque también indica ser descuidado, tener una conduc- ta impulsiva, exagerada, con inclinación a tomar riesgos financieros. Dema- siada confianza en sí mismo puede ser también perjudicial y los accidentes pueden inclusive ocurrir con este tránsito. También es un contacto favorable para la actividad deportiva y muy bueno para cualquiera que realice ejercicios físicos, porque tonifica la acción mu",
+  "MARTE_CONJUNCION_MARTE": "La mejor mancra de manifestar la encrgía de este tránsito es haciendo una fuerte actividad física o un deporte que produzca verdadera satisfacción, de lo contrario, puede conducir a tener una conducta agresiva o a actuar con resen- timiento. Este tránsito incrementa la capacidad de iniciativa, la competencia, produce aumento de energía e intensifica los deseos materiales y sexuales. Mucho depende de cómo se encuentra aspectado Marte en el mapa natal, por- que si está mal configurado, la exteriorización de esta cnergía —si no se le da la oportunidad de hacerlo de manera positiva, puede transformarse en negati- va— se realiza a través de accidentes desde el punto de vista físico, o se sufre la agresión de otros que producen daño, desde el punto de vista emocional. Es una excitante energía, competitiva, impaciente, y con falta de calma interna, así que para controlarla es mejor obrar con prudencia y actuar con cautela y diplomacia. Por otro lado, puede ser beneficiosa en toda tarea de fabricación o de construcción; para el manejo de herramientas, maquinarias o de equipo pesado y en la actividad comercial para realizar negocios que tengan que ver con estas cosas y hasta con seguros. Si no existen otros aspectos negativos en la posición natal, es un contacto excelente para comenzar algo nuevo, para 201 emprender algo con energía, para tener fuerza y entusiasmo en un proyecto con el que uno se identifica y desea que progrese y triunfe, Sin embargo, este comienzo tendrá su primer co",
+  "LUNA_CUADRATURA_MERCURIO": "Las emociones tienden a interferir la razón; el raciocinio es influido por los sentimientos; la concentración mental es obstaculizada por las dificulta- des emocionales. En algunos casos, problemas emocionales subconscientes originados en la infancia interfieren la razón o el buen criterio. Problemas de tipo emocional suelen aparecer en la comunicación con familiares, parien- tes, vecinos y hasta con compañeros de trabajo. Sin embargo, Ud. siente fuerte necesidad de comunicar sus emociones, así que si tiene algún proble- ma con alguien, ahora no es bueno “darle la espalda” porque los sentimien- tos negativos empeorarán la situación. Es una buena época para descargar tensiones y hacer un reajuste de la actitud psicológica y emocional. Ahora es posible que Ud. cambie de opinión, de conformidad con el punto de vista que prevalece para los demás, ¡pero sea honesto y admíitalo! Existe tenden- cia a perder alguna oportunidad que se pueda presentar, descuidar importan- tes detalles o no ser e",
+  "LUNA_OPOSICION_JUPITER": "Fundamentalmente, no es un tránsito negativo, por el contrario, estimula a ser generoso con los demás y la persona tiende una mano a quien la necesita, aunque es posible que lo haga por su propia iniciativa no porque se lo pidan. Además, siente la necesidad de actuar libremente, sin presiones, y se resistirá o discutirá por toda actitud que trate de ser posesiva o limitar su libertad. Sin er- bargo, puede existir una excesiva manifestación sentimental o ser demasiado optimista. Hay una tendencia a la inercia o a dilatar el estudio o el trabajo, co- mo también a comer o beber en exceso, porque la oposición entre ambos pla- netas produce la tensión. Es común sentir intranquilidad o un desasosiego es- piritual, como consecuencia de un cuestionamiento interno respecto de las as- piraciones y fundamentales objetivos. El tránsito de Júpiter en oposición a la Luna natal es similar en su significado al tránsito de la Luna en oposición a Jú- piter natal, sin embargo, dura más tiempo y de este m"
+};
+  
+  // Cargar interpretaciones (primero intenta desde GitHub, luego usa embebidas)
+  useEffect(() => {
+    const loadInterpretations = async () => {
+      setLoadingInterpretations(true);
+      
+      // Intento 1: Cargar todas desde GitHub
+      try {
+        console.log('🔄 Intentando cargar 774 interpretaciones desde GitHub...');
+        const response = await fetch('https://raw.githubusercontent.com/martin59992/transitos-dum/refs/heads/main/dumon_interpretaciones_completo.json', {
+          method: 'GET',
+          mode: 'cors'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setDumonInterpretations(data);
+          console.log('✅ Éxito! Todas las interpretaciones cargadas:', Object.keys(data).length);
+          setLoadingInterpretations(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('⚠️ No se pudo cargar desde GitHub:', err.message);
+      }
+      
+      // Si falló, usar interpretaciones embebidas
+      console.log('📦 Usando interpretaciones embebidas (70 interpretaciones prioritarias)');
+      setDumonInterpretations(DUMON_EMBEDDED);
+      setLoadingInterpretations(false);
+    };
+    
+    loadInterpretations();
+  }, []);
+
+
+  // Datos natales centralizados
+  const natalPlanets = {
+    'Sol': { sign: 'Géminis', degree: 23.952, symbol: '☉' },
+    'Luna': { sign: 'Capricornio', degree: 9.367, symbol: '☽' },
+    'Mercurio': { sign: 'Géminis', degree: 14.056, symbol: '☿' },
+    'Venus': { sign: 'Géminis', degree: 23.661, symbol: '♀' },
+    'Marte': { sign: 'Escorpio', degree: 11.861, symbol: '♂' },
+    'Júpiter': { sign: 'Capricornio', degree: 9.921, symbol: '♃' },
+    'Saturno': { sign: 'Escorpio', degree: 10.340, symbol: '♄' },
+    'Urano': { sign: 'Sagitario', degree: 11.038, symbol: '♅' },
+    'Neptuno': { sign: 'Capricornio', degree: 0.220, symbol: '♆' },
+    'Plutón': { sign: 'Escorpio', degree: 29.480, symbol: '♇' },
+    'Nodo N': { sign: 'Géminis', degree: 6.566, symbol: '☊' },
+    'Quirón': { sign: 'Sagitario', degree: 6.566, symbol: '⚷' },
+    'ASC': { sign: 'Sagitario', degree: 26.808, symbol: 'AC' },
+    'MC': { sign: 'Virgo', degree: 7.454, symbol: 'MC' }
+  };
+
+  const signToDegrees = {
+    'Aries': 0, 'Tauro': 30, 'Géminis': 60, 'Cáncer': 90,
+    'Leo': 120, 'Virgo': 150, 'Libra': 180, 'Escorpio': 210,
+    'Sagitario': 240, 'Capricornio': 270, 'Acuario': 300, 'Piscis': 330
+  };
+
+  const aspectTypes = [
+    { name: 'Conjunción', angle: 0, orb: 4, color: '#FFD700', symbol: '☌' },
+    { name: 'Sextil', angle: 60, orb: 4, color: '#4CAF50', symbol: '⚹' },
+    { name: 'Cuadratura', angle: 90, orb: 4, color: '#FF5252', symbol: '□' },
+    { name: 'Trígono', angle: 120, orb: 4, color: '#2196F3', symbol: '△' },
+    { name: 'Oposición', angle: 180, orb: 4, color: '#FF6B6B', symbol: '☍' }
+  ];
+
+  const getAbsoluteDegree = (sign, degree) => signToDegrees[sign] + degree;
+
+  const calculateAspect = (deg1, deg2) => {
+    let diff = Math.abs(deg1 - deg2);
+    if (diff > 180) diff = 360 - diff;
+
+    for (let aspect of aspectTypes) {
+      if (Math.abs(diff - aspect.angle) <= aspect.orb) {
+        return {
+          ...aspect,
+          exactness: Math.abs(diff - aspect.angle),
+          strength: 1 - (Math.abs(diff - aspect.angle) / aspect.orb)
+        };
+      }
+    }
+    return null;
+  };
+
+  const getInterpretation = (transitPlanet, aspectName, natalPlanet) => {
+    // Normalizar nombres
+    const normalizeAspect = (name) => {
+      const map = {
+        'Conjunción': 'CONJUNCION',
+        'Sextil': 'SEXTIL',
+        'Cuadratura': 'CUADRATURA',
+        'Trígono': 'TRIGONO',
+        'Oposición': 'OPOSICION'
+      };
+      return map[name] || name.toUpperCase();
+    };
+
+    const normalizePlanet = (name) => {
+      const map = {
+        'Sol': 'SOL',
+        'Luna': 'LUNA',
+        'Mercurio': 'MERCURIO',
+        'Venus': 'VENUS',
+        'Marte': 'MARTE',
+        'Júpiter': 'JUPITER',
+        'Saturno': 'SATURNO',
+        'Urano': 'URANO',
+        'Neptuno': 'NEPTUNO',
+        'Plutón': 'PLUTON',
+        'Nodo N': 'NODO NORTE',
+        'Quirón': 'QUIRON',
+        'ASC': 'ASC',
+        'MC': 'MC'
+      };
+      return map[name] || name.toUpperCase();
+    };
+
+    const tPlanet = normalizePlanet(transitPlanet);
+    const aspect = normalizeAspect(aspectName);
+    const nPlanet = normalizePlanet(natalPlanet);
+    
+    const key = `${tPlanet}_${aspect}_${nPlanet}`;
+    
+    // Buscar en interpretaciones de Dumon
+    if (dumonInterpretations[key]) {
+      return dumonInterpretations[key];
+    }
+    
+    // Intentar clave inversa
+    const keyInversa = `${nPlanet}_${aspect}_${tPlanet}`;
+    if (dumonInterpretations[keyInversa]) {
+      return dumonInterpretations[keyInversa];
+    }
+    
+    return `${transitPlanet} en ${aspectName} con ${natalPlanet} natal. Interpretación de Dumon: Esta combinación específica requiere consultar el libro completo para su interpretación detallada.`;
+  };
+
+  const loadTransits = () => {
+    setLoading(true);
+    
+    const transitData = {
+      'Sol': { sign: 'Sagitario', degree: 17.31, symbol: '☉' },
+      'Luna': { sign: 'Leo', degree: 14.50, symbol: '☽' },
+      'Mercurio': { sign: 'Escorpio', degree: 26.75, symbol: '☿' },
+      'Venus': { sign: 'Sagitario', degree: 10.45, symbol: '♀' },
+      'Marte': { sign: 'Sagitario', degree: 25.37, symbol: '♂' },
+      'Júpiter': { sign: 'Cáncer', degree: 23.92, symbol: '♃' },
+      'Saturno': { sign: 'Piscis', degree: 25.27, symbol: '♄' },
+      'Urano': { sign: 'Tauro', degree: 28.72, symbol: '♅' },
+      'Neptuno': { sign: 'Piscis', degree: 29.37, symbol: '♆' },
+      'Plutón': { sign: 'Acuario', degree: 2.09, symbol: '♇' }
+    };
+
+    setTransits(transitData);
+    setLastUpdate(new Date());
+    
+    const allAspects = [];
+    Object.entries(natalPlanets).forEach(([natalPlanet, natalData]) => {
+      const natalDeg = getAbsoluteDegree(natalData.sign, natalData.degree);
+      
+      Object.entries(transitData).forEach(([transitPlanet, transitInfo]) => {
+        const transitDeg = getAbsoluteDegree(transitInfo.sign, transitInfo.degree);
+        const aspect = calculateAspect(natalDeg, transitDeg);
+        
+        if (aspect) {
+          allAspects.push({
+            natalPlanet,
+            transitPlanet,
+            ...aspect,
+            natalPosition: `${natalData.sign} ${Math.floor(natalData.degree)}°${Math.floor((natalData.degree % 1) * 60)}'`,
+            transitPosition: `${transitInfo.sign} ${Math.floor(transitInfo.degree)}°${Math.floor((transitInfo.degree % 1) * 60)}'`
+          });
+        }
+      });
+    });
+    
+    setAspects(allAspects.sort((a, b) => b.strength - a.strength));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadTransits();
+  }, []);
+
+  const natalList = Object.keys(natalPlanets);
+  const transitList = transits ? Object.keys(transits) : [];
+
+  const chartWidth = fullscreen ? window.innerWidth - 100 : 900;
+  const chartHeight = fullscreen ? window.innerHeight - 200 : 700;
+  const margin = { top: 80, right: 50, bottom: 50, left: 120 };
+  const plotWidth = chartWidth - margin.left - margin.right;
+  const plotHeight = chartHeight - margin.top - margin.bottom;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-indigo-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {!fullscreen && (
+          <>
+            {/* Header */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-white mb-2">Dashboard de Tránsitos Astrológicos</h1>
+                  <div className="flex items-center gap-4 text-purple-200">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>14 de Junio, 1984 - 18:10</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      <span>Buenos Aires, Argentina</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={loadTransits}
+                  disabled={loading}
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl transition-all"
+                >
+                  <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                  Actualizar
+                </button>
+              </div>
+              {lastUpdate && (
+                <p className="text-purple-200 text-sm">
+                  Última actualización: {lastUpdate.toLocaleString('es-AR')} - {aspects.length} aspectos
+                  {loadingInterpretations && <span className="ml-2">⏳ Cargando interpretaciones...</span>}
+                  {!loadingInterpretations && Object.keys(dumonInterpretations).length > 0 && (
+                    <span className="ml-2">✅ {Object.keys(dumonInterpretations).length} interpretaciones cargadas</span>
+                  )}
+                </p>
+              )}
+            </div>
+
+            {/* Leyenda */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20">
+              <h2 className="text-xl font-bold text-white mb-4">Leyenda (Orbe: 4°)</h2>
+              <div className="flex flex-wrap gap-4">
+                {aspectTypes.map(aspect => (
+                  <div key={aspect.name} className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-lg">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: aspect.color }}></div>
+                    <span className="text-white font-bold text-lg">{aspect.symbol}</span>
+                    <span className="text-white">{aspect.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Gráfico XY */}
+        <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-6 ${fullscreen ? 'fixed inset-4 z-40' : ''}`}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-white">Gráfico XY de Aspectos</h2>
+            <button
+              onClick={() => setFullscreen(!fullscreen)}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl transition-all font-bold shadow-lg"
+            >
+              {fullscreen ? '✕ Salir' : '⛶ Pantalla Completa'}
+            </button>
+          </div>
+          
+          <div className="flex justify-center overflow-x-auto">
+            <svg width={chartWidth} height={chartHeight} className="bg-indigo-950/50 rounded-xl">
+              {/* Grid lines */}
+              {natalList.map((_, i) => (
+                <line
+                  key={`h-${i}`}
+                  x1={margin.left}
+                  y1={margin.top + (plotHeight / natalList.length) * i}
+                  x2={margin.left + plotWidth}
+                  y2={margin.top + (plotHeight / natalList.length) * i}
+                  stroke="rgba(255,255,255,0.1)"
+                  strokeWidth="1"
+                />
+              ))}
+              {transitList.map((_, i) => (
+                <line
+                  key={`v-${i}`}
+                  x1={margin.left + (plotWidth / transitList.length) * i}
+                  y1={margin.top}
+                  x2={margin.left + (plotWidth / transitList.length) * i}
+                  y2={margin.top + plotHeight}
+                  stroke="rgba(255,255,255,0.1)"
+                  strokeWidth="1"
+                />
+              ))}
+
+              {/* Labels */}
+              {natalList.map((planet, i) => (
+                <text
+                  key={`y-${i}`}
+                  x={margin.left - 10}
+                  y={margin.top + (plotHeight / natalList.length) * i + (plotHeight / natalList.length) / 2}
+                  textAnchor="end"
+                  alignmentBaseline="middle"
+                  fill="white"
+                  fontSize="20"
+                  fontWeight="bold"
+                >
+                  {natalPlanets[planet].symbol}
+                </text>
+              ))}
+
+              {transitList.map((planet, i) => (
+                <text
+                  key={`x-${i}`}
+                  x={margin.left + (plotWidth / transitList.length) * i + (plotWidth / transitList.length) / 2}
+                  y={margin.top - 20}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize="20"
+                  fontWeight="bold"
+                >
+                  {transits[planet].symbol}
+                </text>
+              ))}
+
+              {/* Aspects */}
+              {aspects.map((aspect, idx) => {
+                const natalIndex = natalList.indexOf(aspect.natalPlanet);
+                const transitIndex = transitList.indexOf(aspect.transitPlanet);
+                
+                const x = margin.left + (plotWidth / transitList.length) * transitIndex + (plotWidth / transitList.length) / 2;
+                const y = margin.top + (plotHeight / natalList.length) * natalIndex + (plotHeight / natalList.length) / 2;
+                
+                const radius = 12 + (aspect.strength * 8);
+                const isHovered = hoveredAspect?.natalPlanet === aspect.natalPlanet && 
+                                 hoveredAspect?.transitPlanet === aspect.transitPlanet;
+                
+                return (
+                  <g key={idx}>
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={radius}
+                      fill={aspect.color}
+                      opacity={isHovered ? 0.9 : 0.7}
+                      stroke={isHovered ? 'white' : aspect.color}
+                      strokeWidth={isHovered ? 3 : 1}
+                      className="cursor-pointer transition-all"
+                      onMouseEnter={() => setHoveredAspect(aspect)}
+                      onMouseLeave={() => setHoveredAspect(null)}
+                      onClick={() => setSelectedAspect(aspect)}
+                    />
+                    <text
+                      x={x}
+                      y={y}
+                      textAnchor="middle"
+                      alignmentBaseline="middle"
+                      fill="white"
+                      fontSize="14"
+                      fontWeight="bold"
+                      className="pointer-events-none"
+                    >
+                      {aspect.symbol}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Axis labels */}
+              <text x={chartWidth / 2} y={30} textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">
+                Planetas en Tránsito →
+              </text>
+              <text x={30} y={chartHeight / 2} textAnchor="middle" fill="white" fontSize="14" fontWeight="bold" transform={`rotate(-90, 30, ${chartHeight / 2})`}>
+                ← Planetas Natales
+              </text>
+            </svg>
+          </div>
+
+          {/* Hover info */}
+          {hoveredAspect && (
+            <div className="mt-4 bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl" style={{ color: hoveredAspect.color }}>{hoveredAspect.symbol}</span>
+                <div>
+                  <p className="text-white font-bold">
+                    {hoveredAspect.transitPlanet} {hoveredAspect.name} {hoveredAspect.natalPlanet}
+                  </p>
+                  <p className="text-purple-200 text-sm">
+                    Exactitud: ±{hoveredAspect.exactness.toFixed(2)}° | Fuerza: {(hoveredAspect.strength * 100).toFixed(0)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Aspects list */}
+        {!fullscreen && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <h2 className="text-xl font-bold text-white mb-4">Aspectos Activos ({aspects.length})</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {aspects.slice(0, 12).map((aspect, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                  onClick={() => setSelectedAspect(aspect)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white font-bold">
+                      {aspect.natalPlanet} {aspect.symbol} {aspect.transitPlanet}
+                    </span>
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: aspect.color }}></div>
+                  </div>
+                  <div className="text-sm text-purple-200">
+                    {aspect.name} - ±{aspect.exactness.toFixed(2)}°
+                  </div>
+                  <div className="mt-2 bg-white/10 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-full"
+                      style={{ width: `${aspect.strength * 100}%`, backgroundColor: aspect.color }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Modal */}
+        {selectedAspect && (
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => setSelectedAspect(null)}
+          >
+            <div 
+              className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl p-8 max-w-2xl w-full border-2 border-white/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <span className="text-4xl" style={{ color: selectedAspect.color }}>
+                    {selectedAspect.symbol}
+                  </span>
+                  {selectedAspect.transitPlanet} {selectedAspect.name} {selectedAspect.natalPlanet}
+                </h3>
+                <button onClick={() => setSelectedAspect(null)} className="text-white hover:text-purple-200 text-2xl">
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-white/10 rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                    <div>
+                      <span className="text-purple-300">Planeta en tránsito:</span>
+                      <p className="text-white font-bold text-lg">{selectedAspect.transitPlanet}</p>
+                      <p className="text-purple-200">{selectedAspect.transitPosition}</p>
+                    </div>
+                    <div>
+                      <span className="text-purple-300">Planeta natal:</span>
+                      <p className="text-white font-bold text-lg">{selectedAspect.natalPlanet}</p>
+                      <p className="text-purple-200">{selectedAspect.natalPosition}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-white/20 pt-4 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-purple-300">Tipo:</span>
+                      <p className="text-white font-bold">{selectedAspect.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-purple-300">Exactitud:</span>
+                      <p className="text-white font-bold">±{selectedAspect.exactness.toFixed(2)}°</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <span className="text-purple-300 text-sm">Fuerza:</span>
+                    <div className="mt-2 bg-white/10 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="h-full"
+                        style={{ width: `${selectedAspect.strength * 100}%`, backgroundColor: selectedAspect.color }}
+                      ></div>
+                    </div>
+                    <p className="text-white text-xs mt-1 text-right">
+                      {(selectedAspect.strength * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedAspect(null)}
+                className="mt-6 w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+
+        
+        // Renderizar
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AstroTransitDashboard />);
+    </script>
+</body>
+</html>
