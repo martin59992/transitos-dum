@@ -283,7 +283,21 @@ function AstroTransitDashboard() {
                     )
                 ),
                 e('div', { className: 'bg-white/10 rounded-xl p-6 mb-6' },
-                    e('h4', { className: 'text-white font-semibold mb-3' }, 'Interpretación de Dumon:'),
+                    e('div', { className: 'grid grid-cols-2 gap-4 mb-4 text-sm' },
+                        e('div', {},
+                            e('p', { className: 'text-white/70 mb-1' }, 'Tránsito:'),
+                            e('p', { className: 'text-white font-semibold' }, 
+                                `${selectedAspect.transitPlanet} en ${transitPlanets[selectedAspect.transitPlanet].sign} ${transitPlanets[selectedAspect.transitPlanet].degree.toFixed(2)}°`
+                            )
+                        ),
+                        e('div', {},
+                            e('p', { className: 'text-white/70 mb-1' }, 'Natal:'),
+                            e('p', { className: 'text-white font-semibold' }, 
+                                `${selectedAspect.natalPlanet} en ${natalPlanets[selectedAspect.natalPlanet].sign} ${natalPlanets[selectedAspect.natalPlanet].degree.toFixed(2)}°`
+                            )
+                        )
+                    ),
+                    e('h4', { className: 'text-white font-semibold mb-3 mt-4' }, 'Interpretación de Dumon:'),
                     e('p', { 
                         className: 'text-white/90 leading-relaxed text-base',
                         style: { whiteSpace: 'pre-line' }
