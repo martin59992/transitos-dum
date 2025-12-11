@@ -13,7 +13,6 @@
     <script>
 let DUMON_INTERPRETACIONES = {};
 
-// Cargar interpretaciones
 fetch('interpretaciones.json')
     .then(response => response.json())
     .then(data => {
@@ -116,18 +115,32 @@ function AstroTransitDashboard() {
         
         const key = `${tPlanet}_${aspect}_${nPlanet}`;
         if (DUMON_INTERPRETACIONES[key]) {
-            console.log(`✅ ${key}`);
             return DUMON_INTERPRETACIONES[key];
         }
         
         const keyInversa = `${nPlanet}_${aspect}_${tPlanet}`;
         if (DUMON_INTERPRETACIONES[keyInversa]) {
-            console.log(`✅ ${keyInversa} (inversa)`);
             return DUMON_INTERPRETACIONES[keyInversa];
         }
         
-        console.log(`❌ ${key} / ${keyInversa}`);
         return `${transitPlanet} en ${aspectName} con ${natalPlanet} natal. Interpretación no disponible.`;
+    };
+    
+    // Crear matriz de aspectos
+    const createAspectMatrix = () => {
+        const matrix = {};
+        
+        Object.keys(transitPlanets).forEach(tPlanet => {
+            matrix[tPlanet] = {};
+            Object.keys(natalPlanets).forEach(nPlanet => {
+                const tDeg = getAbsoluteDegree(transitPlanets[tPlanet].sign, transitPlanets[tPlanet].degree);
+                const nDeg = getAbsoluteDegree(natalPlanets[nPlanet].sign, natalPlanets[nPlanet].degree);
+                const aspect = calculateAspect(tDeg, nDeg);
+                matrix[tPlanet][nPlanet] = aspect;
+            });
+        });
+        
+        return matrix;
     };
     
     useEffect(() => {
@@ -152,73 +165,11 @@ function AstroTransitDashboard() {
         
         foundAspects.sort((a, b) => b.strength - a.strength);
         setAspects(foundAspects);
-        console.log('🎯 Aspectos:', foundAspects.length);
     }, []);
     
-    // Función para dibujar el gráfico circular
-    const drawChart = () => {
-        const svg = [];
-        const centerX = 200;
-        const centerY = 200;
-        const radius = 180;
-        
-        // Círculo principal
-        svg.push(e('circle', {
-            key: 'main-circle',
-            cx: centerX,
-            cy: centerY,
-            r: radius,
-            fill: 'none',
-            stroke: 'rgba(255,255,255,0.3)',
-            strokeWidth: 2
-        }));
-        
-        // Planetas natales
-        Object.entries(natalPlanets).forEach(([planet, data]) => {
-            const deg = getAbsoluteDegree(data.sign, data.degree);
-            const rad = (deg - 90) * (Math.PI / 180);
-            const x = centerX + radius * Math.cos(rad);
-            const y = centerY + radius * Math.sin(rad);
-            
-            svg.push(e('circle', {
-                key: `natal-${planet}`,
-                cx: x,
-                cy: y,
-                r: 6,
-                fill: '#4CAF50'
-            }));
-            
-            svg.push(e('text', {
-                key: `natal-text-${planet}`,
-                x: x,
-                y: y - 12,
-                fill: 'white',
-                fontSize: '10',
-                textAnchor: 'middle'
-            }, planet));
-        });
-        
-        // Planetas en tránsito
-        Object.entries(transitPlanets).forEach(([planet, data]) => {
-            const deg = getAbsoluteDegree(data.sign, data.degree);
-            const rad = (deg - 90) * (Math.PI / 180);
-            const x = centerX + (radius - 30) * Math.cos(rad);
-            const y = centerY + (radius - 30) * Math.sin(rad);
-            
-            svg.push(e('circle', {
-                key: `transit-${planet}`,
-                cx: x,
-                cy: y,
-                r: 5,
-                fill: '#FF5252'
-            }));
-        });
-        
-        return e('svg', {
-            viewBox: '0 0 400 400',
-            className: 'w-full h-full'
-        }, ...svg);
-    };
+    const matrix = createAspectMatrix();
+    const transitPlanetNames = Object.keys(transitPlanets);
+    const natalPlanetNames = Object.keys(natalPlanets);
     
     return e('div', { className: 'container mx-auto px-4 py-8' },
         e('div', { className: 'bg-white/10 backdrop-blur-lg rounded-3xl p-8 shadow-2xl mb-8' },
@@ -230,9 +181,60 @@ function AstroTransitDashboard() {
                 )
             ),
             
-            e('div', { className: 'bg-purple-800/20 rounded-xl p-6 mb-8' },
-                e('h2', { className: 'text-white text-2xl font-bold mb-4 text-center' }, 'Carta Astral'),
-                drawChart()
+            // GRÁFICO MATRIZ XY
+            e('div', { className: 'bg-purple-800/20 rounded-xl p-6 mb-8 overflow-x-auto' },
+                e('h2', { className: 'text-white text-2xl font-bold mb-4 text-center' }, 'Matriz de Aspectos'),
+                e('table', { className: 'w-full border-collapse' },
+                    // Header - Planetas en tránsito (arriba)
+                    e('thead', {},
+                        e('tr', {},
+                            e('th', { className: 'p-2 text-white/50 text-sm' }, ''),
+                            ...transitPlanetNames.map(tPlanet =>
+                                e('th', { 
+                                    key: tPlanet,
+                                    className: 'p-2 text-white font-bold text-sm border-l border-white/10'
+                                }, tPlanet)
+                            )
+                        )
+                    ),
+                    // Body - Planetas natales (izquierda) vs tránsitos
+                    e('tbody', {},
+                        ...natalPlanetNames.map((nPlanet, i) =>
+                            e('tr', { key: nPlanet, className: i > 0 ? 'border-t border-white/10' : '' },
+                                e('td', { className: 'p-2 text-white font-bold text-sm text-right pr-4' }, nPlanet),
+                                ...transitPlanetNames.map(tPlanet => {
+                                    const aspect = matrix[tPlanet][nPlanet];
+                                    return e('td', {
+                                        key: `${tPlanet}-${nPlanet}`,
+                                        className: `p-2 text-center border-l border-white/10 cursor-pointer hover:bg-white/10 transition-colors ${aspect ? 'bg-white/5' : ''}`,
+                                        onClick: aspect ? () => {
+                                            const fullAspect = aspects.find(a => 
+                                                a.transitPlanet === tPlanet && a.natalPlanet === nPlanet
+                                            );
+                                            if (fullAspect) setSelectedAspect(fullAspect);
+                                        } : null
+                                    },
+                                        aspect ? e('span', {
+                                            style: { 
+                                                color: aspect.color,
+                                                fontSize: '1.5rem',
+                                                filter: `brightness(${0.7 + aspect.strength * 0.6})`
+                                            }
+                                        }, aspect.symbol) : e('span', { className: 'text-white/20 text-xs' }, '·')
+                                    );
+                                })
+                            )
+                        )
+                    )
+                ),
+                e('div', { className: 'mt-4 flex gap-4 justify-center flex-wrap text-sm' },
+                    ...aspectTypes.map(asp =>
+                        e('div', { key: asp.name, className: 'flex items-center gap-2' },
+                            e('span', { style: { color: asp.color, fontSize: '1.2rem' } }, asp.symbol),
+                            e('span', { className: 'text-white/70' }, asp.name)
+                        )
+                    )
+                )
             )
         ),
         
