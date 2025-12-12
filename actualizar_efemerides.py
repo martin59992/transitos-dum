@@ -19,8 +19,8 @@ def obtener_efemerides_astronomy_api():
         fecha_hoy = datetime.now().strftime("%Y-%m-%d")
         
         # Credenciales
-        app_id = os.environ.get('ASTRONOMY_API_ID', 'dada39dc-04c5-44e1-9468-a0667f6828c0')
-        app_secret = os.environ.get('ASTRONOMY_API_SECRET', '820f1bb992442b8926f0cd2debcc8eaf79784823297162e0cb175103')
+        app_id = os.environ.get('ASTRONOMY_API_ID', '53de6800-d61c-4aad-a2ed-317672e34336')
+        app_secret = os.environ.get('ASTRONOMY_API_SECRET', '820f1bb992442b8926f0cd2debcc8eaf79784823297162e0cb1751031b2efbb095bacd3b4f227376a09fd5b4cbe22a922c9b4ff1fdde1692b3707d43a2cdb16a0818bdc6c9a2ae364aea96f6ebbc71a257d027af6cb326bf6162886a8b957fe9a029f5f526dfee7aee891a3fd9aec918')
         
         print(f"🔍 Consultando Astronomy API para {fecha_hoy}...")
         
