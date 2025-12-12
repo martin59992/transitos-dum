@@ -38,7 +38,17 @@ const {useState, useEffect, createElement: e} = React;
 async function obtenerEfemeridesReales() {
     if (EFEMERIDES_ACTUALES && EFEMERIDES_ACTUALES.planetas) {
         console.log('🌟 Usando efemérides actualizadas por GitHub Actions');
-        return EFEMERIDES_ACTUALES.planetas;
+        
+        // Convertir formato español (signo/grado) a inglés (sign/degree)
+        const planetasConvertidos = {};
+        for (const [planeta, data] of Object.entries(EFEMERIDES_ACTUALES.planetas)) {
+            planetasConvertidos[planeta] = {
+                sign: data.signo,
+                degree: data.grado
+            };
+        }
+        
+        return planetasConvertidos;
     }
     
     console.log('⚠️  Efemérides no disponibles, usando fallback');
