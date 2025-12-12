@@ -1,0 +1,47 @@
+{
+  "fecha": "2024-12-11",
+  "fuente": "Swiss Ephemeris - https://www.astro.com",
+  "instrucciones": "Para actualizar: ir a https://carta-natal.es/astros_ahora.php?geo=1 y copiar los valores",
+  "planetas": {
+    "Sol": {
+      "signo": "Sagitario",
+      "grado": 19.59
+    },
+    "Luna": {
+      "signo": "Cáncer",
+      "grado": 2.5
+    },
+    "Mercurio": {
+      "signo": "Sagitario",
+      "grado": 5.38
+    },
+    "Venus": {
+      "signo": "Capricornio",
+      "grado": 1.45
+    },
+    "Marte": {
+      "signo": "Leo",
+      "grado": 8.22
+    },
+    "Júpiter": {
+      "signo": "Géminis",
+      "grado": 14.92
+    },
+    "Saturno": {
+      "signo": "Piscis",
+      "grado": 14.27
+    },
+    "Urano": {
+      "signo": "Tauro",
+      "grado": 24.72
+    },
+    "Neptuno": {
+      "signo": "Piscis",
+      "grado": 27.37
+    },
+    "Plutón": {
+      "signo": "Capricornio",
+      "grado": 29.08
+    }
+  }
+}
