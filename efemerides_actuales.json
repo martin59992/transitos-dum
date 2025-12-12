@@ -4,43 +4,43 @@
   "planetas": {
     "Sol": {
       "signo": "Sagitario",
-      "grado": 20.58
+      "grado": 20.56
     },
     "Luna": {
-      "signo": "Tauro",
-      "grado": 18.18
+      "signo": "Cáncer",
+      "grado": 2.5
     },
     "Mercurio": {
       "signo": "Sagitario",
-      "grado": 6.38
+      "grado": 6.21
     },
     "Venus": {
-      "signo": "Acuario",
-      "grado": 1.2
+      "signo": "Capricornio",
+      "grado": 1.45
     },
     "Marte": {
-      "signo": "Acuario",
-      "grado": 19.52
+      "signo": "Leo",
+      "grado": 8.22
     },
     "Júpiter": {
-      "signo": "Cáncer",
-      "grado": 15.0
+      "signo": "Géminis",
+      "grado": 14.92
     },
     "Saturno": {
       "signo": "Piscis",
-      "grado": 26.3
+      "grado": 14.27
     },
     "Urano": {
       "signo": "Tauro",
-      "grado": 28.73
+      "grado": 24.72
     },
     "Neptuno": {
       "signo": "Piscis",
-      "grado": 29.38
+      "grado": 27.37
     },
     "Plutón": {
-      "signo": "Acuario",
-      "grado": 0.58
+      "signo": "Capricornio",
+      "grado": 29.08
     }
   }
 }
