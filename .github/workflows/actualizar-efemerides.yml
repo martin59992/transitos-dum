@@ -1,0 +1,35 @@
+name: Actualizar Efemérides Diarias
+
+on:
+  schedule:
+    # Ejecutar todos los días a las 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # Permite ejecutar manualmente
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repositorio
+      uses: actions/checkout@v3
+      
+    - name: Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Instalar dependencias
+      run: |
+        pip install requests beautifulsoup4 lxml pytz
+        
+    - name: Ejecutar script de actualización
+      run: |
+        python actualizar_efemerides.py
+        
+    - name: Commit y push cambios
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add efemerides_actuales.json
+        git diff --quiet && git diff --staged --quiet || (git commit -m "🌟 Actualizar efemérides $(date +'%Y-%m-%d')" && git push)
