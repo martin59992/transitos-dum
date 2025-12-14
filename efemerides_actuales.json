@@ -1,38 +1,38 @@
 {
-  "fecha": "2025-12-13",
+  "fecha": "2025-12-14",
   "fuente": "Cálculo astronómico (fallback)",
   "planetas": {
     "Sol": {
       "signo": "Sagitario",
-      "grado": 21.55
+      "grado": 22.53
     },
     "Luna": {
       "signo": "Cáncer",
-      "grado": 15.68
+      "grado": 28.85
     },
     "Mercurio": {
       "signo": "Sagitario",
-      "grado": 7.59
+      "grado": 8.98
     },
     "Venus": {
       "signo": "Capricornio",
-      "grado": 2.65
+      "grado": 3.85
     },
     "Marte": {
       "signo": "Leo",
-      "grado": 8.74
+      "grado": 9.27
     },
     "Júpiter": {
       "signo": "Géminis",
-      "grado": 15.0
+      "grado": 15.09
     },
     "Saturno": {
       "signo": "Piscis",
-      "grado": 14.3
+      "grado": 14.34
     },
     "Urano": {
       "signo": "Tauro",
-      "grado": 24.73
+      "grado": 24.74
     },
     "Neptuno": {
       "signo": "Piscis",
@@ -40,7 +40,7 @@
     },
     "Plutón": {
       "signo": "Capricornio",
-      "grado": 29.08
+      "grado": 29.09
     }
   }
 }
