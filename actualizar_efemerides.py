@@ -27,9 +27,14 @@ def obtener_efemerides_astronomy_api():
         print(f"🔍 Consultando Astronomy API para {fecha_hoy.strftime('%Y-%m-%d')}...")
         print(f"   App ID: {app_id[:20]}...")
         
-        # Formato correcto: Basic Auth con base64(app_id:app_secret)
-        credentials = f"{app_id}:{app_secret}"
-        b64_credentials = base64.b64encode(credentials.encode()).decode()
+        # Según el error, la API espera: application_id=xxx&application_hash=yyy
+        # El hash debe ser SHA-256 del secret
+        import hashlib
+        app_hash = hashlib.sha256(app_secret.encode()).hexdigest()
+        
+        # Formato de Authorization según el mensaje de error
+        auth_header = f"{app_id}:{app_hash}"
+        b64_credentials = base64.b64encode(auth_header.encode()).decode()
         
         # Endpoint correcto según documentación
         url = "https://api.astronomyapi.com/api/v2/bodies/positions"
