@@ -44,8 +44,17 @@ async function obtenerEfemeridesReales() {
     if (EFEMERIDES_COMPLETAS && EFEMERIDES_COMPLETAS[fechaStr]) {
         console.log('✅ Efemérides encontradas en archivo precargado');
         
-        // Las efemérides ya están en el formato correcto {signo, grado}
-        return EFEMERIDES_COMPLETAS[fechaStr];
+        // Convertir formato español {signo, grado} a inglés {sign, degree}
+        const planetasConvertidos = {};
+        for (const [planeta, data] of Object.entries(EFEMERIDES_COMPLETAS[fechaStr])) {
+            planetasConvertidos[planeta] = {
+                sign: data.signo,
+                degree: data.grado
+            };
+        }
+        
+        console.log('✅ Planetas convertidos:', Object.keys(planetasConvertidos).length);
+        return planetasConvertidos;
     }
     
     // Si la fecha exacta no está, buscar la más cercana
@@ -58,7 +67,17 @@ async function obtenerEfemeridesReales() {
         });
         
         console.log('⚠️  Fecha exacta no encontrada, usando:', fechaMasCercana);
-        return EFEMERIDES_COMPLETAS[fechaMasCercana];
+        
+        // Convertir formato
+        const planetasConvertidos = {};
+        for (const [planeta, data] of Object.entries(EFEMERIDES_COMPLETAS[fechaMasCercana])) {
+            planetasConvertidos[planeta] = {
+                sign: data.signo,
+                degree: data.grado
+            };
+        }
+        
+        return planetasConvertidos;
     }
     
     console.log('❌ No hay efemérides disponibles');
