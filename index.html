@@ -12,46 +12,56 @@
     <div id="root"></div>
     <script>
 let DUMON_INTERPRETACIONES = {};
-let EFEMERIDES_ACTUALES = null;
+let EFEMERIDES_COMPLETAS = null;
 
-// Cargar interpretaciones y efemérides actuales
+// Cargar interpretaciones y efemérides completas (396 días)
 Promise.all([
     fetch('interpretaciones.json').then(r => r.json()),
-    fetch('efemerides_actuales.json').then(r => r.json())
+    fetch('efemerides_2025_2026.json').then(r => r.json())
 ])
     .then(([interpretaciones, efemerides]) => {
         DUMON_INTERPRETACIONES = interpretaciones;
-        EFEMERIDES_ACTUALES = efemerides;
+        EFEMERIDES_COMPLETAS = efemerides;
         console.log('📚 Interpretaciones cargadas:', Object.keys(DUMON_INTERPRETACIONES).length);
-        console.log('🌟 Efemérides del día:', efemerides.fecha);
-        console.log('📡 Fuente:', efemerides.fuente);
+        console.log('🌟 Efemérides cargadas:', Object.keys(efemerides).length, 'días');
+        console.log('📅 Rango:', Object.keys(efemerides)[0], '-', Object.keys(efemerides)[Object.keys(efemerides).length - 1]);
         init();
     })
     .catch(err => {
         console.error('❌ Error cargando datos:', err);
-        document.getElementById('root').innerHTML = '<div class="text-white text-center p-8">Error cargando datos. Verifica que interpretaciones.json y efemerides_actuales.json estén disponibles.</div>';
+        document.getElementById('root').innerHTML = '<div class="text-white text-center p-8">Error cargando datos. Verifica que interpretaciones.json y efemerides_2025_2026.json estén disponibles.</div>';
     });
 
 const {useState, useEffect, createElement: e} = React;
 
-// Función para obtener efemérides del día actual
+// Función para obtener efemérides del día actual desde el archivo precargado
 async function obtenerEfemeridesReales() {
-    if (EFEMERIDES_ACTUALES && EFEMERIDES_ACTUALES.planetas) {
-        console.log('🌟 Usando efemérides actualizadas por GitHub Actions');
+    const hoy = new Date();
+    const fechaStr = hoy.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    
+    console.log('🌟 Buscando efemérides para:', fechaStr);
+    
+    if (EFEMERIDES_COMPLETAS && EFEMERIDES_COMPLETAS[fechaStr]) {
+        console.log('✅ Efemérides encontradas en archivo precargado');
         
-        // Convertir formato español (signo/grado) a inglés (sign/degree)
-        const planetasConvertidos = {};
-        for (const [planeta, data] of Object.entries(EFEMERIDES_ACTUALES.planetas)) {
-            planetasConvertidos[planeta] = {
-                sign: data.signo,
-                degree: data.grado
-            };
-        }
-        
-        return planetasConvertidos;
+        // Las efemérides ya están en el formato correcto {signo, grado}
+        return EFEMERIDES_COMPLETAS[fechaStr];
     }
     
-    console.log('⚠️  Efemérides no disponibles, usando fallback');
+    // Si la fecha exacta no está, buscar la más cercana
+    const fechas = Object.keys(EFEMERIDES_COMPLETAS || {}).sort();
+    
+    if (fechas.length > 0) {
+        // Buscar fecha más cercana
+        const fechaMasCercana = fechas.reduce((prev, curr) => {
+            return Math.abs(new Date(curr) - hoy) < Math.abs(new Date(prev) - hoy) ? curr : prev;
+        });
+        
+        console.log('⚠️  Fecha exacta no encontrada, usando:', fechaMasCercana);
+        return EFEMERIDES_COMPLETAS[fechaMasCercana];
+    }
+    
+    console.log('❌ No hay efemérides disponibles');
     return obtenerEfemeridesDelDia();
 }
 
@@ -300,8 +310,8 @@ function AstroTransitDashboard() {
                 `📅 ${new Date().toLocaleDateString('es-AR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}`
             ),
             e('p', { className: 'text-white/50 text-center text-sm mb-8' }, 
-                EFEMERIDES_ACTUALES ? 
-                    `🌟 ${EFEMERIDES_ACTUALES.fuente} • Actualización automática diaria via GitHub Actions` : 
+                EFEMERIDES_COMPLETAS ? 
+                    `🌟 Efemérides precargadas: 396 días (Dic 2025 - Dic 2026) • Actualización automática diaria` : 
                     '🌟 Efemérides actualizadas'
             ),
             e('div', { className: 'bg-purple-800/30 rounded-xl p-4 mb-8 text-center' },
