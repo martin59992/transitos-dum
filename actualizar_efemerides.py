@@ -1,61 +1,76 @@
 #!/usr/bin/env python3
 """
-Script para obtener efemérides reales desde APIs públicas
-Ejecutado automáticamente por GitHub Actions cada día
+Script para obtener efemérides reales desde Astronomy API
+Según documentación oficial: https://docs.astronomyapi.com/
 """
 
 import requests
 import json
 from datetime import datetime
 import sys
-import hashlib
 import base64
 
 def obtener_efemerides_astronomy_api():
-    """Intenta obtener desde Astronomy API con credenciales"""
+    """
+    Astronomy API - Formato correcto según documentación oficial
+    https://docs.astronomyapi.com/
+    """
     try:
         import os
         
-        fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+        fecha_hoy = datetime.now()
         
         # Credenciales
-        app_id = os.environ.get('ASTRONOMY_API_ID', '53de6800-d61c-4aad-a2ed-317672e34336')
-        app_secret = os.environ.get('ASTRONOMY_API_SECRET', '820f1bb992442b8926f0cd2debcc8eaf79784823297162e0cb1751031b2efbb095bacd3b4f227376a09fd5b4cbe22a922c9b4ff1fdde1692b3707d43a2cdb16a0818bdc6c9a2ae364aea96f6ebbc71a257d027af6cb326bf6162886a8b957fe9a029f5f526dfee7aee891a3fd9aec918')
+        app_id = os.environ.get('ASTRONOMY_API_ID', 'dada39dc-04c5-44e1-9468-a0667f6828c0')
+        app_secret = os.environ.get('ASTRONOMY_API_SECRET', '820f1bb992442b8926f0cd2debcc8eaf79784823297162e0cb175103')
         
-        print(f"🔍 Consultando Astronomy API para {fecha_hoy}...")
+        print(f"🔍 Consultando Astronomy API para {fecha_hoy.strftime('%Y-%m-%d')}...")
+        print(f"   App ID: {app_id[:20]}...")
         
-        # Esta API usa un formato específico de autenticación
+        # Formato correcto: Basic Auth con base64(app_id:app_secret)
+        credentials = f"{app_id}:{app_secret}"
+        b64_credentials = base64.b64encode(credentials.encode()).decode()
+        
+        # Endpoint correcto según documentación
         url = "https://api.astronomyapi.com/api/v2/bodies/positions"
         
-        # Crear hash de autenticación
-        auth_string = f"{app_id}:{app_secret}"
-        auth_hash = hashlib.sha512(auth_string.encode()).hexdigest()
-        
         headers = {
-            'Authorization': f'Basic {app_id}:{auth_hash}'
+            'Authorization': f'Basic {b64_credentials}'
         }
         
-        params = {
-            'latitude': 0,
-            'longitude': 0,
-            'elevation': 0,
-            'from_date': fecha_hoy,
-            'to_date': fecha_hoy,
-            'time': '12:00:00'
+        # Body en formato JSON (POST request)
+        payload = {
+            "style": "default",
+            "observer": {
+                "latitude": 0,
+                "longitude": 0,
+                "date": fecha_hoy.strftime("%Y-%m-%d")
+            },
+            "view": {
+                "type": "constellation",
+                "parameters": {
+                    "constellation": "*"
+                }
+            }
         }
         
-        response = requests.get(url, params=params, headers=headers, timeout=30)
+        print(f"   Enviando request POST...")
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        
+        print(f"   Status code: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            print("✅ Astronomy API respondió correctamente")
-            return parsear_astronomy_api(data, fecha_hoy)
+            print("   ✅ Astronomy API respondió correctamente")
+            return parsear_astronomy_api(data, fecha_hoy.strftime('%Y-%m-%d'))
         else:
-            print(f"❌ Astronomy API error: {response.status_code} - {response.text[:200]}")
+            print(f"   ❌ Error: {response.text[:300]}")
             return None
             
     except Exception as e:
         print(f"❌ Error con Astronomy API: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def parsear_astronomy_api(data, fecha):
@@ -79,94 +94,89 @@ def parsear_astronomy_api(data, fecha):
     }
     
     try:
-        if 'data' in data and 'table' in data['data']:
-            rows = data['data']['table']['rows']
-            
-            for row in rows:
-                cells = row.get('cells', [])
-                if len(cells) >= 2:
-                    nombre_en = cells[0].get('id', '').lower()
-                    nombre_es = nombre_map.get(nombre_en)
-                    
-                    if nombre_es and len(cells) >= 2:
-                        posicion = cells[1].get('position', {})
-                        signo_en = posicion.get('constellation', {}).get('id', '').lower()
-                        signo_es = signos_map.get(signo_en, signo_en.capitalize())
-                        
-                        grados = float(posicion.get('horizontal', {}).get('degrees', {}).get('value', 0))
-                        minutos = float(posicion.get('horizontal', {}).get('minutes', {}).get('value', 0))
-                        
-                        grado_total = round(grados + minutos / 60, 2)
-                        
-                        planetas_resultado[nombre_es] = {
-                            "signo": signo_es,
-                            "grado": grado_total
-                        }
+        print(f"   Parseando respuesta...")
         
-        if len(planetas_resultado) > 0:
+        # La estructura puede variar según el endpoint
+        if 'data' in data:
+            if 'table' in data['data']:
+                # Formato tabla
+                rows = data['data']['table']['rows']
+                
+                for row in rows:
+                    entry = row.get('entry', {})
+                    cells = row.get('cells', [])
+                    
+                    if len(cells) >= 2:
+                        nombre_en = cells[0].get('id', '').lower()
+                        nombre_es = nombre_map.get(nombre_en)
+                        
+                        if nombre_es:
+                            # Obtener posición
+                            position_cell = cells[1] if len(cells) > 1 else {}
+                            position = position_cell.get('position', {})
+                            
+                            # Constelación/Signo
+                            constellation = position.get('constellation', {})
+                            signo_en = constellation.get('id', '').lower()
+                            signo_es = signos_map.get(signo_en, signo_en.capitalize())
+                            
+                            # Grados
+                            horizontal = position.get('horizontal', {})
+                            degrees_obj = horizontal.get('degrees', {})
+                            minutes_obj = horizontal.get('minutes', {})
+                            
+                            grados = float(degrees_obj.get('value', 0))
+                            minutos = float(minutes_obj.get('value', 0))
+                            
+                            grado_total = round(grados + minutos / 60, 2)
+                            
+                            planetas_resultado[nombre_es] = {
+                                "signo": signo_es,
+                                "grado": grado_total
+                            }
+                            
+                            print(f"   Parseado: {nombre_es} en {signo_es} {grado_total}°")
+        
+        if len(planetas_resultado) >= 5:  # Al menos 5 planetas
             return {
                 "fecha": fecha,
                 "fuente": "Astronomy API (AstronomyAPI.com)",
                 "planetas": planetas_resultado
             }
         else:
-            print("⚠️  Astronomy API no devolvió datos parseables")
+            print(f"   ⚠️  Solo se parsearon {len(planetas_resultado)} planetas")
             return None
             
     except Exception as e:
-        print(f"❌ Error parseando Astronomy API: {e}")
-        return None
-
-def obtener_efemerides_astro_seek():
-    """Intenta obtener desde Astro-Seek API"""
-    try:
-        fecha_hoy = datetime.now().strftime("%Y-%m-%d")
-        url = f"https://horoscopes.astro-seek.com/calculate-planet-positions/?send_calculation=1&narozeni_den={fecha_hoy.split('-')[2]}&narozeni_mesic={fecha_hoy.split('-')[1]}&narozeni_rok={fecha_hoy.split('-')[0]}&narozeni_hodina=12&narozeni_minuta=0&narozeni_city=London&narozeni_mesto_hidden=London&narozeni_stat_hidden=GB&narozeni_podstat_kratky_hidden=&narozeni_podstat_hidden=&narozeni_input_hidden=&narozeni_podstat2_kratky_hidden=&narozeni_podstat3_kratky_hidden=&narozeni_sirka_stupne=51&narozeni_sirka_minuty=30&narozeni_sirka_smer=0&narozeni_delka_stupne=0&narozeni_delka_minuty=7&narozeni_delka_smer=1&narozeni_timezone_form=auto&narozeni_timezone_dst_form=auto&house_system=placidus"
-        
-        print(f"🔍 Consultando Astro-Seek para {fecha_hoy}...")
-        
-        response = requests.get(url, timeout=30, headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; EfemeridesBot/1.0)'
-        })
-        
-        if response.status_code == 200:
-            print("✅ Astro-Seek respondió (pero requiere parseo HTML)")
-            return None  # Requiere parseo complejo de HTML
-        else:
-            print(f"❌ Astro-Seek error: {response.status_code}")
-            return None
-            
-    except Exception as e:
-        print(f"❌ Error con Astro-Seek: {e}")
+        print(f"   ❌ Error parseando: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def obtener_efemerides_fallback():
-    """Cálculo de respaldo si las APIs fallan"""
+    """Cálculo de respaldo"""
     
-    from datetime import datetime, timedelta
+    from datetime import datetime
     
-    # Base: 12 diciembre 2025 (HOY - posiciones reales)
     fecha_base = datetime(2025, 12, 12)
     fecha_hoy = datetime.now()
     dias_diff = (fecha_hoy - fecha_base).days
     
-    print(f"⚠️  Usando cálculo de respaldo (base + {dias_diff} días)")
+    print(f"⚠️  Usando cálculo astronómico (base + {dias_diff} días)")
     
-    # Posiciones REALES 12 dic 2025 (desde Swiss Ephemeris / Astro.com)
     posiciones_base = {
-        'Sol': 260.56,         # Sagitario 20.56°
-        'Luna': 92.50,         # Cáncer 2.50°
-        'Mercurio': 246.21,    # Sagitario 6.21°
-        'Venus': 271.45,       # Capricornio 1.45°
-        'Marte': 128.22,       # Leo 8.22°
-        'Júpiter': 74.92,      # Géminis 14.92°
-        'Saturno': 344.27,     # Piscis 14.27°
-        'Urano': 54.72,        # Tauro 24.72°
-        'Neptuno': 357.37,     # Piscis 27.37°
-        'Plutón': 299.08       # Capricornio 29.08°
+        'Sol': 260.56,
+        'Luna': 92.50,
+        'Mercurio': 246.21,
+        'Venus': 271.45,
+        'Marte': 128.22,
+        'Júpiter': 74.92,
+        'Saturno': 344.27,
+        'Urano': 54.72,
+        'Neptuno': 357.37,
+        'Plutón': 299.08
     }
     
-    # Velocidades diarias
     velocidades = {
         'Sol': 0.9856,
         'Luna': 13.176,
@@ -213,18 +223,12 @@ def main():
     print("="*70)
     print()
     
-    # Intentar obtener efemérides (orden de prioridad)
-    efemerides = None
-    
-    # 1. Astronomy API (más precisa)
+    # Intentar API
     efemerides = obtener_efemerides_astronomy_api()
     
-    # 2. Astro-Seek
+    # Fallback si falla
     if not efemerides:
-        efemerides = obtener_efemerides_astro_seek()
-    
-    # 3. Cálculo de respaldo
-    if not efemerides:
+        print()
         efemerides = obtener_efemerides_fallback()
     
     if not efemerides:
